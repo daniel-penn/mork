@@ -8,35 +8,30 @@ from discord.ext import commands
 from discord.utils import get
 
 import hc_constants
-from accept_card import accept_card
+from accept_card import accept_card, promote_from_submissions
 from get_card_message import parseCardNameAndAuthor
 from getters import (
     getSubmissionDiscussionChannel,
-    getVetoChannel,
 )
-from handle_veto_post import handle_veto_post
 from is_admin import is_admin
 from is_mork import is_mork
-from set_config import SetConfig
-from set_configs import active_submission_set
+from set_config import SetConfig, veto_content_for_submission
+from set_configs import submission_check_configs
 
 
 async def check_submissions(bot: commands.Bot):
-    await _check_submissions_for_config(
-        bot, hc_constants.SUBMISSIONS_CHANNEL, active_submission_set()
-    )
+    for config in submission_check_configs():
+        await _check_submissions_for_config(bot, config)
 
 
-async def _check_submissions_for_config(
-    bot: commands.Bot, channel_id: int, config: SetConfig
-):
-    if config.threshold is None:
+async def _check_submissions_for_config(bot: commands.Bot, config: SetConfig):
+    channel_id = config.submission_channel
+    if channel_id is None or config.threshold is None:
         return
     print(f"checking submissions for {config.set_id}")
     subChannel = cast(TextChannel, bot.get_channel(channel_id))
     if not subChannel:
         return
-    vetoChannel = getVetoChannel(bot)
     acceptedChannel = getSubmissionDiscussionChannel(bot)
     logChannel = cast(TextChannel, bot.get_channel(hc_constants.MORK_SUBMISSIONS_LOGGING_CHANNEL))
     timeNow = datetime.now(UTC)
@@ -62,6 +57,7 @@ async def _check_submissions_for_config(
             or not is_mork(messageEntry.author.id)
         ):
             continue
+
         upvote = get(messageEntry.reactions, emoji=hc_constants.VOTE_UP)
         downvote = get(messageEntry.reactions, emoji=hc_constants.VOTE_DOWN)
 
@@ -129,7 +125,7 @@ async def _check_submissions_for_config(
                         await asyncio.sleep(1)
                         await accept_card(
                             bot=bot,
-                            channelIdForCard=hc_constants.VETO_CARD_LIST,
+                            channelIdForCard=hc_constants.GRAVEYARD_CARD_LIST,
                             message_set_id="HCV",
                             file=File(
                                 fp=io.BytesIO(attachment_data),
@@ -145,29 +141,30 @@ async def _check_submissions_for_config(
                         await messageEntry.delete()
                         continue  # and then stop processing the card
 
-                veto_body = accepted_message_no_mentions
-                await asyncio.sleep(1)
-                vetoEntry = await vetoChannel.send(
-                    content=veto_body,
-                    file=File(
-                        fp=io.BytesIO(attachment_data),
-                        filename=attachment_filename,
-                    ),
-                )
-
                 # Submissions thread is not deleted with the message.
                 submission_thread = guild.get_channel_or_thread(messageEntry.id)
+                veto_body = veto_content_for_submission(config, accepted_message_no_mentions)
+                try:
+                    await promote_from_submissions(
+                        bot=bot,
+                        veto_content=veto_body,
+                        file=File(
+                            fp=io.BytesIO(attachment_data),
+                            filename=attachment_filename,
+                        ),
+                        cardName=dbname,
+                        authorName=card_author,
+                        message_set_id=config.set_id,
+                        submission_thread_url=(
+                            submission_thread.jump_url if submission_thread else None
+                        ),
+                        vc_mention_user_ids=config.vc_mention_user_ids,
+                    )
+                except Exception as e:
+                    print(f"promote_from_submissions failed for {resolvedName}: {e}")
+                    continue
 
                 await asyncio.sleep(1)
-                await handle_veto_post(
-                    message=vetoEntry,
-                    bot=bot,
-                    veto_council=None,
-                    submission_thread_url=(
-                        submission_thread.jump_url if submission_thread else None
-                    ),
-                    vc_mention_user_ids=config.vc_mention_user_ids,
-                )
 
                 logContent = f"{acceptContent}, datetime: {f'<t:{int(messageEntry.created_at.timestamp())}:f>'}, message id: {messageEntry.id}, upvotes: {upCount}, downvotes: {downCount}, set: {config.set_id}"
                 await asyncio.sleep(1)

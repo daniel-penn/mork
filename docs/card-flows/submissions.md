@@ -36,17 +36,15 @@ flowchart TD
   REMINDER_CHECK -->|yes| REM["🕛 nearing-end ping"]
   REM --> POLL
   REMINDER_CHECK -->|no| POLL
-  CHK -->|yes| GRAVE_CHECK{"Admin 🪦 reacted?"}
-  GRAVE_CHECK -->|yes| GY["accept → HCV graveyard"]
-  GRAVE_CHECK -->|no| ADMIN_SAFEGUARD{"Admin 👍 among upvotes<br/>or downvotes ≠ 1?"}
+  CHK -->|yes| ADMIN_SAFEGUARD{"Admin 👍 among upvotes<br/>or downvotes ≠ 1?"}
   ADMIN_SAFEGUARD -->|no| ADM["DM admin to verify"]
   ADM --> POLL
-  ADMIN_SAFEGUARD -->|yes| VP2["#veto-polls"]
-  VP2 --> HVP["Veto poll setup"]
+  ADMIN_SAFEGUARD -->|yes| PROMO["promote_from_submissions<br/>official in database"]
+  PROMO --> VP2["#veto-polls"]
+  VP2 --> HVP["Veto poll setup<br/>thread line 2 = uuid: …"]
   VP --> HVP
   HVP --> ANN["#submissions-discussion + log"]
   ANN --> DEL2["Delete submission poll"]
-  GY --> DEL2
 ```
 
 ### Missing / invalid submission cases
@@ -79,7 +77,7 @@ flowchart TD
 | **Non-image attachment** | e.g. PDF attached                 | Poll created anyway                          | Deleted (reposted as poll) | Consumed       |
 | **Magic skip**           | 1/4001 roll                       | Straight to veto (no poll)                   | Deleted                    | Consumed       |
 
-**Closed day:** Checked first. Non-admin posts in `#submissions` on Tuesday or Saturday (US Eastern) are deleted. Admins bypass the closed-day gate (same as cooldown). Cooldown timestamps are not written on closed days for blocked posts, and elapsed wait time ignores those days. At the start of each closed day Mork posts `@here THE GATES OF HELL ARE CLOSED` in `#submissions` and `#submissions-discussion`; at the start of Wednesday and Sunday (US Eastern) Mork posts `@here THE GATES OF HELL HAVE OPENED` in those channels.
+**Closed day:** Checked first. Non-admin posts in configured submission channels (`#submissions`, `#card-pile-1`, …) on Tuesday or Saturday (US Eastern) are deleted. Admins bypass the closed-day gate (same as cooldown). Cooldown timestamps are not written on closed days for blocked posts, and elapsed wait time ignores those days. At the start of each closed day Mork posts `@here THE GATES OF HELL ARE CLOSED` in `#submissions` and `#submissions-discussion`; at the start of Wednesday and Sunday (US Eastern) Mork posts `@here THE GATES OF HELL HAVE OPENED` in those channels.
 
 **Missing name:** Intake bails before cooldown write or repost. The card image is reattached in `#submissions-discussion` so the user can fix the title and resubmit. Whitespace-only first lines count as missing.
 
@@ -89,16 +87,20 @@ flowchart TD
 
 ---
 
-## Alternate submission sets (e.g. card pile **PL1**)
+## Card pile 1 (`#card-pile-1` · set **PL1**)
 
-Only **one** submission set is active at a time (`ACTIVE_SUBMISSION_SET_CONFIG` in `set_configs.py`). Intake is always plain `CardName by @author` in `#submissions` — same format as HC9.1, no line prefix.
+**Entry:** `#card-pile-1` (channel id `1564479507446890506`) · same background poll checker as `#submissions` · `!wait` remains `#bot-test` only
 
-| Set | Poll threshold | Cooldown | Notes |
-| --- | --- | --- | --- |
-| **HC9.1** | `SUBMISSIONS_THRESHOLD` | 22 scubusiness h | Gallery manifest, graveyard 🪦 fast-track |
-| **PL1** | 30 | 4 scubusiness h | Hellpit VC users (not `@VETO_COUNCIL`) |
+| Policy | Value |
+| --- | --- |
+| Poll threshold | up − down ≥ **30**, age ≥ 1 day |
+| Cooldown | **4 wall-clock hours** (`../mork-card-pile-1-state`) |
+| Tue/Sat closed | **Yes** (same gate as `#submissions`) |
+| Veto-polls prefix | `PL1: CardName by author` → `!compileveto` writes set **PL1** |
+| Card-list channel | **veto card list** (`VETO_CARD_LIST`) until a dedicated PL1 list exists |
+| Hellpit / VC ping | Users `259904996563222529`, `253992237120225281` (not `@VETO_COUNCIL`) |
 
-Switch the active config when the community moves intake to another set; veto / `!compileveto` accept into that set unless a legacy `Hellscube:` veto-polls prefix is present.
+Intake validation matches `#submissions` (attachment, no `@` in title, card name, cooldown). Graveyard 🪦 fast-track applies only to `#submissions` (HC9.1), not card pile.
 
 ---
 
@@ -142,7 +144,7 @@ flowchart TD
   CHK -->|no| POLL
   CHK -->|yes| ACC["Accept token"]
   ACC --> CL["Post #token-list"]
-  ACC --> DRV["Upload to token folder"]
+  ACC --> HF["Hellfall postcard (kind=token)"]
   ACC --> SH[("Tokens Database (Unapproved)")]
 ```
 

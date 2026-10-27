@@ -19,7 +19,7 @@ def getScubeLairDiscussionChannel(bot: commands.Bot):
 
 
 def getErrataTrackingChannel(bot: commands.Bot):
-    return cast(TextChannel, bot.get_channel(hc_constants.ERRATA_TRACKING))
+    return cast(TextChannel, bot.get_channel(hc_constants.ERRATA_SUBMISSIONS))
 
 
 def getSubmissionsChannel(bot: commands.Bot):
@@ -36,6 +36,10 @@ def getTokenListChannel(bot: commands.Bot):
 
 def getBotTest(bot: commands.Bot):
     return cast(TextChannel, bot.get_channel(hc_constants.BOT_TEST_CHANNEL))
+
+
+def getGraveyardChannel(bot: commands.Bot):
+    return cast(TextChannel, bot.get_channel(hc_constants.GRAVEYARD_CARD_LIST))
 
 
 def getMorkSubmissionsLoggingChannel(bot: commands.Bot):
