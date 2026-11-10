@@ -24,7 +24,12 @@ from getters import (
 )
 from is_admin import is_admin
 from is_mork import reasonable_card
-from set_config import SetConfig, cooldown_wait_message, hours_since_last_submission, veto_content_for_submission
+from set_config import (
+    SetConfig,
+    cooldown_wait_message,
+    hours_since_last_submission,
+    veto_content_for_submission,
+)
 
 
 async def intake_submission_post(
